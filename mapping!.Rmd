@@ -1,0 +1,90 @@
+---
+title: "mapping!"
+author: "Rachel Tao"
+date: "11/1/2020"
+output: html_document
+---
+# Loading data
+
+We're going to look at NYC Airbnb data.
+
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+library(plotly)
+library(lubridate)
+library(leaflet)
+library(sp)
+library(ggmap)
+library(rgdal)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = 0.6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+```
+
+
+```{r}
+data("rest_inspec")
+
+nyc_inspections <- 
+  select(rest_inspec, action, boro, inspection_date, cuisine_description, dba, score, street, violation_description, zipcode, grade) %>% 
+  mutate(
+    inspection_date =
+      as.Date(inspection_date),
+  ) %>% 
+  filter(
+    inspection_date > "2016-12-31",
+    score != 'NA'
+  ) %>% 
+  arrange(inspection_date) %>% 
+  distinct(dba, .keep_all = TRUE)
+
+```
+
+
+#Plotly plots
+
+## map
+
+```{r eval=FALSE, include=FALSE}
+
+density <- 
+  count(nyc_inspections, zipcode) %>% 
+  rename("ZIPCODE" = "zipcode")
+
+zipcodes <- readOGR(dsn = "./ZIP_CODE_040114")
+
+spatial_join <- merge(zipcodes, density, by = "ZIPCODE")
+
+bins <- c(0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, Inf)
+mypalette <- colorBin(palette = "viridis", na.color = "transparent", domain = zipcodes$POPULATION)
+
+m <- leaflet(zipcodes) %>% 
+  setView(lat = 40.730610, lng = -73.935242, zoom = 11) %>% 
+  addProviderTiles("CartoDB") %>% 
+  add_choropleth()
+
+m %>% 
+  addPolygons(data = zipcodes,
+    fillColor = ~mypalettte(POPULATION), 
+    weight = 2, 
+    opacity = 1, 
+    color = "darkgrey",
+    dashArray = "3",
+    fillOpacity = 0.7)
+
+```
